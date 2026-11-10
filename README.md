@@ -20,6 +20,10 @@ This module creates VPC subnets and networking resources for a given VPC, suppor
 | `private_subnets` | `list(object)` | Private subnet definitions with `cidr`, `az`, `subnet_type`, `key`, `tags` |
 | `internet_ingress` | `bool` | Enables internet gateway and relevant route resources |
 
+The `az` field in both subnet inputs is an availability-zone name (for example, `us-east-1a`) and is assigned to the subnet's `availability_zone`.
+
+Public subnet and internet gateway/public routing resources are defined in `public.tf`. Private subnet, NAT gateway, and private routing resources are defined in `private.tf`.
+
 ## Example
 ```hcl
 module "vpc_networking" {
