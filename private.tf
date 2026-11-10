@@ -1,5 +1,5 @@
 locals {
-  private_subnet_map    = { for subnet in var.private_subnets : subnet.key => subnet }
+  private_subnet_map = { for subnet in var.private_subnets : subnet.key => subnet }
   private_subnet_egress = {
     for key, subnet in local.private_subnet_map :
     key => subnet.egress != null ? subnet.egress : (var.internet_ingress ? "public_nat" : "none")
@@ -29,9 +29,7 @@ resource "aws_subnet" "private" {
 }
 
 resource "aws_eip" "nat" {
-  count  = length(local.public_nat_subnet_map) > 0 ? 1 : 0
-  domain = "vpc"
-  public_ipv4_pool = "amazon"
+  count = length(local.public_nat_subnet_map) > 0 ? 1 : 0
 
   tags = {
     Name = "nat-eip"
