@@ -17,10 +17,12 @@ This module creates VPC subnets and networking resources for a given VPC, suppor
 | --- | --- | --- |
 | `vpc_id` | `string` | VPC ID to attach resources to |
 | `public_subnets` | `list(object)` | Public subnet definitions with `cidr`, `az`, `subnet_type`, `key`, `tags` |
-| `private_subnets` | `list(object)` | Private subnet definitions with `cidr`, `az`, `subnet_type`, `key`, `tags` |
-| `internet_ingress` | `bool` | Enables internet gateway and relevant route resources |
+| `private_subnets` | `list(object)` | Private subnet definitions with `cidr`, `az`, `subnet_type`, `key`, optional `egress`, and `tags` |
+| `internet_ingress` | `bool` | Enables the internet gateway, public routing, and public NAT egress when selected |
 
 The `az` field in both subnet inputs is an availability-zone name (for example, `us-east-1a`) and is assigned to the subnet's `availability_zone`.
+
+Each private subnet can set `egress` to `none`, `public_nat`, or `private_only`. `none` and `private_only` have no default outbound route; AWS still provides the VPC-local route, so both can communicate with addresses in the same VPC. `public_nat` adds a default route through the public NAT gateway and requires `internet_ingress = true` and at least one public subnet. If `egress` is omitted, it defaults to the legacy behavior: `public_nat` when `internet_ingress` is true, otherwise `none`.
 
 Public subnet and internet gateway/public routing resources are defined in `public.tf`. Private subnet, NAT gateway, and private routing resources are defined in `private.tf`.
 
@@ -47,6 +49,7 @@ module "vpc_networking" {
       az          = "us-east-1a"
       subnet_type = "private"
       key         = "private-a"
+      egress      = "public_nat"
       tags        = { Environment = "dev" }
     }
   ]
@@ -57,5 +60,5 @@ module "vpc_networking" {
 
 ## Notes
 - Public subnets automatically get a Name tag of `Public subnet ${az}`.
-- Private subnets get routing through a NAT gateway when `internet_ingress` is enabled and private subnets are defined.
+- Private subnets get routing through a NAT gateway only when their effective egress mode is `public_nat`.
 - The module is designed for Terraform 1.x and AWS provider 5.x+.
