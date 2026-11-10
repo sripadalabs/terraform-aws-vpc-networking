@@ -14,6 +14,6 @@ output "internet_gateway_id" {
 }
 
 output "nat_gateway_id" {
-  description = "NAT gateway ID if private subnets and internet ingress are enabled."
-  value       = var.internet_ingress && length(var.private_subnets) > 0 ? aws_nat_gateway.this[0].id : null
+  description = "Public NAT gateway ID if any private subnet uses public_nat egress."
+  value       = length(aws_nat_gateway.this) > 0 ? aws_nat_gateway.this[0].id : null
 }
