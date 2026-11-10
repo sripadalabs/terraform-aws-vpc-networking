@@ -17,3 +17,8 @@ output "nat_gateway_id" {
   description = "Public NAT gateway ID if any private subnet uses public_nat egress."
   value       = length(aws_nat_gateway.this) > 0 ? aws_nat_gateway.this[0].id : null
 }
+
+output "private_nat_gateway_ids" {
+  description = "Private NAT gateway IDs keyed by private NAT subnet key."
+  value       = { for key, gateway in aws_nat_gateway.private : key => gateway.id }
+}
