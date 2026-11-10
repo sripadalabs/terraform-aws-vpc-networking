@@ -31,6 +31,7 @@ resource "aws_subnet" "private" {
 resource "aws_eip" "nat" {
   count  = length(local.public_nat_subnet_map) > 0 ? 1 : 0
   domain = "vpc"
+  public_ipv4_pool = "amazon"
 
   tags = {
     Name = "nat-eip"
