@@ -1,6 +1,7 @@
 locals {
-  public_subnet_map  = { for subnet in var.public_subnets : subnet.key => subnet }
-  primary_public_key = length(var.public_subnets) > 0 ? var.public_subnets[0].key : null
+  public_subnet_map      = { for subnet in var.public_subnets : subnet.key => subnet }
+  primary_public_key     = length(var.public_subnets) > 0 ? var.public_subnets[0].key : null
+  public_route_table_azs = var.internet_ingress ? toset([for subnet in var.public_subnets : subnet.az]) : toset([])
 }
 
 resource "aws_subnet" "public" {
@@ -32,18 +33,19 @@ resource "aws_internet_gateway" "this" {
 }
 
 resource "aws_route_table" "public" {
-  count  = var.internet_ingress ? 1 : 0
+  for_each = local.public_route_table_azs
+
   vpc_id = var.vpc_id
 
   tags = {
-    Name = "public-route-table"
+    Name = "public-route-table-${each.key}"
   }
 }
 
 resource "aws_route" "public_internet" {
-  count = var.internet_ingress ? 1 : 0
+  for_each = local.public_route_table_azs
 
-  route_table_id         = aws_route_table.public[0].id
+  route_table_id         = aws_route_table.public[each.key].id
   destination_cidr_block = "0.0.0.0/0"
   gateway_id             = aws_internet_gateway.this[0].id
 }
@@ -52,5 +54,5 @@ resource "aws_route_table_association" "public" {
   for_each = var.internet_ingress ? local.public_subnet_map : {}
 
   subnet_id      = aws_subnet.public[each.key].id
-  route_table_id = aws_route_table.public[0].id
+  route_table_id = aws_route_table.public[each.value.az].id
 }
