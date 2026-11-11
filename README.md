@@ -24,7 +24,7 @@ The `az` field in both subnet inputs is an availability-zone name (for example, 
 
 Each private subnet can set `egress` to `none`, `public_nat`, or `private_only`. `none` and `private_only` have no outbound route beyond the VPC-local route, so same-VPC communication continues to use that local route. `public_nat` adds a default route through a public NAT gateway in the same AZ and requires `internet_ingress = true` and a public subnet in every AZ that uses this mode. The module creates one public NAT gateway and EIP per such AZ. If `egress` is omitted, it defaults to the legacy behavior: `public_nat` when `internet_ingress` is true, otherwise `none`.
 
-Public subnet and internet gateway/public routing resources are defined in `public.tf`. Private subnet, NAT gateway, and private routing resources are defined in `private.tf`.
+Public subnet and internet gateway/public routing resources are defined in `public.tf`. When `internet_ingress` is enabled, the module creates one public route table and default internet route per distinct public-subnet AZ, associating each public subnet with its AZ's route table; the VPC has one internet gateway. Private subnet, NAT gateway, and private routing resources are defined in `private.tf`.
 
 ## Example
 ```hcl
