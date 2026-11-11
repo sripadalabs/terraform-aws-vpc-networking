@@ -16,14 +16,6 @@ locals {
       for subnet in var.public_subnets : subnet.key if subnet.az == az
     ][0], null)
   }
-  public_nat_gateway_azs = {
-    for az, subnet_key in local.public_nat_public_subnet_key_by_az : az => subnet_key
-    if var.internet_ingress && subnet_key != null
-  }
-  public_nat_workload_routes = {
-    for key, subnet in local.public_nat_workload_subnet_map : key => subnet
-    if var.internet_ingress && lookup(local.public_nat_public_subnet_key_by_az, subnet.az, null) != null
-  }
 }
 
 resource "aws_subnet" "private" {
@@ -42,17 +34,10 @@ resource "aws_subnet" "private" {
     },
     each.value.tags
   )
-
-  lifecycle {
-    precondition {
-      condition     = contains(["none", "public_nat", "private_only"], local.private_subnet_egress[each.key])
-      error_message = "Private subnet egress must be one of: none, public_nat, or private_only."
-    }
-  }
 }
 
 resource "aws_eip" "nat" {
-  for_each = local.public_nat_gateway_azs
+  for_each = local.public_nat_public_subnet_key_by_az
 
   tags = {
     Name = "nat-eip-${each.key}"
@@ -60,7 +45,7 @@ resource "aws_eip" "nat" {
 }
 
 resource "aws_nat_gateway" "this" {
-  for_each = local.public_nat_gateway_azs
+  for_each = local.public_nat_public_subnet_key_by_az
 
   allocation_id = aws_eip.nat[each.key].id
   subnet_id     = aws_subnet.public[each.value].id
@@ -83,7 +68,7 @@ resource "aws_route_table" "private" {
 }
 
 resource "aws_route" "public_nat" {
-  for_each = local.public_nat_workload_routes
+  for_each = local.public_nat_workload_subnet_map
 
   route_table_id         = aws_route_table.private[each.key].id
   destination_cidr_block = "0.0.0.0/0"
@@ -95,15 +80,4 @@ resource "aws_route_table_association" "private" {
 
   subnet_id      = aws_subnet.private[each.key].id
   route_table_id = aws_route_table.private[each.key].id
-
-  lifecycle {
-    precondition {
-      condition     = local.private_subnet_egress[each.key] != "public_nat" || var.internet_ingress
-      error_message = "Private subnets with egress = \"public_nat\" require internet_ingress = true."
-    }
-    precondition {
-      condition     = local.private_subnet_egress[each.key] != "public_nat" || lookup(local.public_nat_public_subnet_key_by_az, each.value.az, null) != null
-      error_message = "Private subnets with egress = \"public_nat\" require a public subnet in the same AZ."
-    }
-  }
 }
