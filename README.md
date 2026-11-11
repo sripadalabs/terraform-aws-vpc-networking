@@ -27,7 +27,7 @@ This module creates VPC subnets and networking resources for a given VPC, suppor
 
 The `az` field in both subnet inputs is an availability-zone name (for example, `us-east-1a`) and is assigned to the subnet's `availability_zone`.
 
-Each private subnet can set `egress` to `none`, `public_nat`, `private_only`, or `private_nat`. `none` and `private_only` have no outbound route beyond the VPC-local route, so same-VPC communication continues to use that local route. `public_nat` adds a default route through the public NAT gateway and requires `internet_ingress = true` and at least one public subnet. If `egress` is omitted, it defaults to the legacy behavior: `public_nat` when `internet_ingress` is true, otherwise `none`.
+Each private subnet can set `egress` to `none`, `public_nat`, `private_only`, or `private_nat`. `none` and `private_only` have no outbound route beyond the VPC-local route, so same-VPC communication continues to use that local route. `public_nat` adds a default route through a public NAT gateway in the same AZ and requires `internet_ingress = true` and a public subnet in every AZ that uses this mode. The module creates one public NAT gateway and EIP per such AZ. If `egress` is omitted, it defaults to the legacy behavior: `public_nat` when `internet_ingress` is true, otherwise `none`.
 
 `private_nat` routes only the configured `private_nat_destination_cidrs` from a workload subnet to the private NAT gateway in the same AZ; it does not provide internet egress. Configure one dedicated `private_nat_subnets` subnet per workload AZ, plus `private_nat_route_target_id` and `private_nat_route_target_type` to send those CIDRs from the NAT subnet onward through a Transit Gateway or Virtual Private Gateway already attached to the VPC. Keep private NAT subnets separate from workload subnets and specify only remote CIDRs; same-VPC traffic uses the VPC-local route.
 
@@ -87,5 +87,5 @@ module "vpc_networking" {
 
 ## Notes
 - Public subnets automatically get a Name tag of `Public subnet ${az}`.
-- Private subnets get a public NAT default route only when their effective egress mode is `public_nat`; `private_nat` creates private NAT gateways without EIPs and routes only configured remote CIDRs.
+- Private subnets get a default route through their AZ-local public NAT gateway only when their effective egress mode is `public_nat`; `public_nat_gateway_ids` returns every public NAT gateway ID keyed by AZ. The legacy `nat_gateway_id` output remains available and returns the first ID. `private_nat` creates private NAT gateways without EIPs and routes only configured remote CIDRs.
 - The module is designed for Terraform 1.x and AWS provider 5.x+.

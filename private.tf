@@ -4,9 +4,25 @@ locals {
     for key, subnet in local.private_subnet_map :
     key => subnet.egress != null ? subnet.egress : (var.internet_ingress ? "public_nat" : "none")
   }
-  public_nat_subnet_map = {
+  public_nat_workload_subnet_map = {
     for key, subnet in local.private_subnet_map : key => subnet
-    if local.private_subnet_egress[key] == "public_nat" && var.internet_ingress && local.primary_public_key != null
+    if local.private_subnet_egress[key] == "public_nat"
+  }
+  public_nat_azs = toset([
+    for subnet in values(local.public_nat_workload_subnet_map) : subnet.az
+  ])
+  public_nat_public_subnet_key_by_az = {
+    for az in local.public_nat_azs : az => try([
+      for subnet in var.public_subnets : subnet.key if subnet.az == az
+    ][0], null)
+  }
+  public_nat_gateway_azs = {
+    for az, subnet_key in local.public_nat_public_subnet_key_by_az : az => subnet_key
+    if var.internet_ingress && subnet_key != null
+  }
+  public_nat_workload_routes = {
+    for key, subnet in local.public_nat_workload_subnet_map : key => subnet
+    if var.internet_ingress && lookup(local.public_nat_public_subnet_key_by_az, subnet.az, null) != null
   }
   private_nat_enabled = anytrue([
     for mode in values(local.private_subnet_egress) : mode == "private_nat"
@@ -64,21 +80,21 @@ resource "aws_subnet" "private" {
 }
 
 resource "aws_eip" "nat" {
-  count = length(local.public_nat_subnet_map) > 0 ? 1 : 0
+  for_each = local.public_nat_gateway_azs
 
   tags = {
-    Name = "nat-eip"
+    Name = "nat-eip-${each.key}"
   }
 }
 
 resource "aws_nat_gateway" "this" {
-  count = length(local.public_nat_subnet_map) > 0 ? 1 : 0
+  for_each = local.public_nat_gateway_azs
 
-  allocation_id = aws_eip.nat[0].id
-  subnet_id     = aws_subnet.public[local.primary_public_key].id
+  allocation_id = aws_eip.nat[each.key].id
+  subnet_id     = aws_subnet.public[each.value].id
 
   tags = {
-    Name = "nat-gateway"
+    Name = "nat-gateway-${each.key}"
   }
 
   depends_on = [aws_internet_gateway.this]
@@ -95,11 +111,11 @@ resource "aws_route_table" "private" {
 }
 
 resource "aws_route" "private_nat" {
-  for_each = local.public_nat_subnet_map
+  for_each = local.public_nat_workload_routes
 
   route_table_id         = aws_route_table.private[each.key].id
   destination_cidr_block = "0.0.0.0/0"
-  nat_gateway_id         = aws_nat_gateway.this[0].id
+  nat_gateway_id         = aws_nat_gateway.this[each.value.az].id
 }
 
 resource "aws_route_table_association" "private" {
@@ -110,8 +126,12 @@ resource "aws_route_table_association" "private" {
 
   lifecycle {
     precondition {
-      condition     = local.private_subnet_egress[each.key] != "public_nat" || (var.internet_ingress && local.primary_public_key != null)
-      error_message = "Private subnets with egress = \"public_nat\" require internet_ingress = true and at least one public subnet."
+      condition     = local.private_subnet_egress[each.key] != "public_nat" || var.internet_ingress
+      error_message = "Private subnets with egress = \"public_nat\" require internet_ingress = true."
+    }
+    precondition {
+      condition     = local.private_subnet_egress[each.key] != "public_nat" || lookup(local.public_nat_public_subnet_key_by_az, each.value.az, null) != null
+      error_message = "Private subnets with egress = \"public_nat\" require a public subnet in the same AZ."
     }
     precondition {
       condition     = local.private_subnet_egress[each.key] != "private_nat" || length(var.private_nat_destination_cidrs) > 0
