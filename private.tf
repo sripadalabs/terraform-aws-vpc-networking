@@ -82,11 +82,6 @@ resource "aws_route_table" "private" {
   }
 }
 
-moved {
-  from = aws_route.private_nat
-  to   = aws_route.public_nat
-}
-
 resource "aws_route" "public_nat" {
   for_each = local.public_nat_workload_routes
 
