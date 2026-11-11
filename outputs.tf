@@ -22,8 +22,3 @@ output "public_nat_gateway_ids" {
   description = "Public NAT gateway IDs keyed by availability zone."
   value       = { for az, gateway in aws_nat_gateway.this : az => gateway.id }
 }
-
-output "private_nat_gateway_ids" {
-  description = "Private NAT gateway IDs keyed by private NAT subnet key."
-  value       = { for key, gateway in aws_nat_gateway.private : key => gateway.id }
-}
