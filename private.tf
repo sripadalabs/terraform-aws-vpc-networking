@@ -42,6 +42,13 @@ resource "aws_subnet" "private" {
     },
     each.value.tags
   )
+
+  lifecycle {
+    precondition {
+      condition     = contains(["none", "public_nat", "private_only"], local.private_subnet_egress[each.key])
+      error_message = "Private subnet egress must be one of: none, public_nat, or private_only."
+    }
+  }
 }
 
 resource "aws_eip" "nat" {
