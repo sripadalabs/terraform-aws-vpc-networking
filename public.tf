@@ -1,6 +1,5 @@
 locals {
   public_subnet_map      = { for subnet in var.public_subnets : subnet.key => subnet }
-  primary_public_key     = length(var.public_subnets) > 0 ? var.public_subnets[0].key : null
   public_route_table_azs = var.internet_ingress ? toset([for subnet in var.public_subnets : subnet.az]) : toset([])
 }
 

@@ -61,4 +61,4 @@ module "vpc_networking" {
 ## Notes
 - Public subnets automatically get a Name tag of `Public subnet ${az}`.
 - Private subnets get a default route through their AZ-local public NAT gateway only when their effective egress mode is `public_nat`; `public_nat_gateway_ids` returns every public NAT gateway ID keyed by AZ. The legacy `nat_gateway_id` output remains available and returns the first ID.
-- The module is designed for Terraform 1.x and AWS provider 5.x+.
+- The module requires Terraform 1.9.0 or later and AWS provider 5.x+.

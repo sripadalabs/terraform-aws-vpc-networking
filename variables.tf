@@ -34,6 +34,18 @@ variable "private_subnets" {
     ])
     error_message = "Private subnet egress must be one of: none, public_nat, or private_only."
   }
+
+  validation {
+    condition = alltrue([
+      for subnet in var.private_subnets :
+      (subnet.egress != null ? subnet.egress : (var.internet_ingress ? "public_nat" : "none")) != "public_nat" ||
+      (
+        var.internet_ingress &&
+        anytrue([for public_subnet in var.public_subnets : public_subnet.az == subnet.az])
+      )
+    ])
+    error_message = "Private subnets with effective egress = \"public_nat\" require internet_ingress = true and a public subnet in the same AZ."
+  }
 }
 
 variable "internet_ingress" {
