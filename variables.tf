@@ -13,6 +13,11 @@ variable "public_subnets" {
     tags        = optional(map(string), {})
   }))
   default = []
+
+  validation {
+    condition     = length(distinct([for subnet in var.public_subnets : subnet.az])) == length(var.public_subnets)
+    error_message = "Public subnets must have at most one subnet per availability zone."
+  }
 }
 
 variable "private_subnets" {

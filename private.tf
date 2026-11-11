@@ -11,10 +11,11 @@ locals {
   public_nat_azs = toset([
     for subnet in values(local.public_nat_workload_subnet_map) : subnet.az
   ])
-  public_nat_public_subnet_key_by_az = {
-    for az in local.public_nat_azs : az => try([
-      for subnet in var.public_subnets : subnet.key if subnet.az == az
-    ][0], null)
+  public_subnet_by_az = {
+    for subnet in var.public_subnets : subnet.az => subnet
+  }
+  public_nat_public_subnet_by_az = {
+    for az in local.public_nat_azs : az => local.public_subnet_by_az[az]
   }
 }
 
@@ -37,7 +38,7 @@ resource "aws_subnet" "private" {
 }
 
 resource "aws_eip" "nat" {
-  for_each = local.public_nat_public_subnet_key_by_az
+  for_each = local.public_nat_public_subnet_by_az
 
   tags = {
     Name = "nat-eip-${each.key}"
@@ -45,10 +46,10 @@ resource "aws_eip" "nat" {
 }
 
 resource "aws_nat_gateway" "this" {
-  for_each = local.public_nat_public_subnet_key_by_az
+  for_each = local.public_nat_public_subnet_by_az
 
   allocation_id = aws_eip.nat[each.key].id
-  subnet_id     = aws_subnet.public[each.value].id
+  subnet_id     = aws_subnet.public[each.value.key].id
 
   tags = {
     Name = "nat-gateway-${each.key}"
