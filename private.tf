@@ -26,7 +26,7 @@ resource "aws_route_table" "private" {
   vpc_id = var.vpc_id
 
   tags = {
-    Name = "private-route-table-${each.value.az}"
+    Name = "Private Route Table ${upper(split("-", each.value.az)[1])}"
   }
 }
 
@@ -35,7 +35,7 @@ resource "aws_route" "public_nat" {
 
   route_table_id         = aws_route_table.private[each.key].id
   destination_cidr_block = "0.0.0.0/0"
-  nat_gateway_id         = aws_nat_gateway.this[each.value.az].id
+  nat_gateway_id         = aws_nat_gateway.public_nat[each.value.az].id
 }
 
 resource "aws_route_table_association" "private" {

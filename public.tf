@@ -37,7 +37,7 @@ resource "aws_route_table" "public" {
   vpc_id = var.vpc_id
 
   tags = {
-    Name = "public-route-table-${each.value.az}"
+    Name = "Public Route Table ${upper(split("-", each.value.az)[1])}"
   }
 }
 
@@ -53,25 +53,25 @@ resource "aws_route_table_association" "public" {
   for_each = var.internet_ingress ? local.public_subnet_map : {}
 
   subnet_id      = aws_subnet.public[each.key].id
-  route_table_id = aws_route_table.public[each.value.az].id
+  route_table_id = aws_route_table.public[each.key].id
 }
 
 resource "aws_eip" "nat" {
-  for_each = local.public_subnet_map
+  for_each = {for item in var.public_subnets : item.az => item if var.internet_ingress}
 
   tags = {
-    Name = "nat-eip-${each.key}"
+    Name = "NAT EIP ${each.key}"
   }
 }
 
-resource "aws_nat_gateway" "this" {
-  for_each = local.public_subnet_map
+resource "aws_nat_gateway" "public_nat" {
+  for_each = {for item in var.public_subnets : item.az => item if var.internet_ingress}
 
   allocation_id = aws_eip.nat[each.key].id
   subnet_id     = aws_subnet.public[each.value.key].id
 
   tags = {
-    Name = "nat-gateway-${each.key}"
+    Name = "NAT Gateway ${upper(split("-", each.value.az)[1])}"
   }
 
   depends_on = [aws_internet_gateway.this]
