@@ -58,6 +58,9 @@ resource "aws_route_table_association" "public" {
 
 resource "aws_eip" "nat" {
   for_each = {for item in var.public_subnets : item.az => item if var.internet_ingress}
+  
+  domain           = "vpc"
+  public_ipv4_pool = "amazon"
 
   tags = {
     Name = "NAT EIP ${each.key}"
