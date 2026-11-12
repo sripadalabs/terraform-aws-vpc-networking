@@ -8,13 +8,13 @@ resource "aws_subnet" "public" {
 
   vpc_id                              = var.vpc_id
   cidr_block                          = each.value.cidr
-  availability_zone                   = each.value.az
+  availability_zone_id                = each.value.az
   private_dns_hostname_type_on_launch = "ip-name"
   map_public_ip_on_launch             = false # default is false
 
   tags = merge(
     {
-      Name       = "Public subnet ${each.value.az}"
+      Name       = "Public Subnet ${upper(split("-", each.value.az)[1])}"
       SubnetType = each.value.subnet_type
       SubnetKey  = each.key
     },
@@ -32,17 +32,17 @@ resource "aws_internet_gateway" "this" {
 }
 
 resource "aws_route_table" "public" {
-  for_each = local.public_route_table_azs
+  for_each = local.public_subnet_map
 
   vpc_id = var.vpc_id
 
   tags = {
-    Name = "public-route-table-${each.key}"
+    Name = "public-route-table-${each.value.az}"
   }
 }
 
 resource "aws_route" "public_internet" {
-  for_each = local.public_route_table_azs
+  for_each = local.public_subnet_map
 
   route_table_id         = aws_route_table.public[each.key].id
   destination_cidr_block = "0.0.0.0/0"
@@ -54,4 +54,25 @@ resource "aws_route_table_association" "public" {
 
   subnet_id      = aws_subnet.public[each.key].id
   route_table_id = aws_route_table.public[each.value.az].id
+}
+
+resource "aws_eip" "nat" {
+  for_each = local.public_subnet_map
+
+  tags = {
+    Name = "nat-eip-${each.key}"
+  }
+}
+
+resource "aws_nat_gateway" "this" {
+  for_each = local.public_subnet_map
+
+  allocation_id = aws_eip.nat[each.key].id
+  subnet_id     = aws_subnet.public[each.value.key].id
+
+  tags = {
+    Name = "nat-gateway-${each.key}"
+  }
+
+  depends_on = [aws_internet_gateway.this]
 }
