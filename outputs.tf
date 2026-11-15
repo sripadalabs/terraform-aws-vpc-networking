@@ -60,3 +60,11 @@ output "public_nat_gateway_ids" {
   description = "Public NAT gateway IDs keyed by availability zone."
   value       = { for az, gateway in aws_nat_gateway.public_nat : az => gateway.id }
 }
+
+output "vpc_all_cidrs" {
+  description = "CIDRs of the created subnets."
+  value       = flatten([
+              [for subnet in aws_subnet.private : subnet.cidr_block],
+              [for subnet in aws_subnet.public : subnet.cidr_block]
+            ])
+    }
