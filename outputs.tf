@@ -63,8 +63,8 @@ output "public_nat_gateway_ids" {
 
 output "vpc_all_cidrs" {
   description = "CIDRs of the created subnets."
-  value       = concat([
+  value       = concat(
               [for subnet in aws_subnet.private : subnet.cidr_block],
               [for subnet in aws_subnet.public : subnet.cidr_block]
-            ])
+            )
     }
