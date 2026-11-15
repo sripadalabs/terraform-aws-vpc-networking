@@ -43,7 +43,7 @@ output "private_only_cidrs" {
 
 output "private_tgw_attachment_subnet_ids" {
   description = "IDs of the created private_tgw_attachment subnets."
-  value       = { for k, subnet in var.private_subnets : k => aws_subnet.private[subnet.key].id if subnet.subnet_type == "private_tgw_attachment" }
+  value       = [ for k, subnet in var.private_subnets : aws_subnet.private[subnet.key].id if subnet.subnet_type == "private_tgw_attachment" ]
 }
 
 output "private_tgw_attachment_cidrs" {
@@ -63,7 +63,7 @@ output "public_nat_gateway_ids" {
 
 output "vpc_all_cidrs" {
   description = "CIDRs of the created subnets."
-  value       = flatten([
+  value       = concat([
               [for subnet in aws_subnet.private : subnet.cidr_block],
               [for subnet in aws_subnet.public : subnet.cidr_block]
             ])
