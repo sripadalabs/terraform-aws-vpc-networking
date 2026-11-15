@@ -8,14 +8,29 @@ output "private_with_internet_subnet_ids" {
   value       = { for k, subnet in aws_subnet.private : k => subnet.id if subnet.subnet_type == "private_with_internet" }
 }
 
+output "private_with_internet_cidrs" {
+  description = "CIDRs of the created private_with_internet subnets."
+  value       = { for k, subnet in aws_subnet.private : k => subnet.cidr_block if subnet.subnet_type == "private_with_internet" }
+}
+
 output "private_only_subnet_ids" {
   description = "IDs of the created private_only subnets."
   value       = { for k, subnet in aws_subnet.private : k => subnet.id if subnet.subnet_type == "private_only" }
 }
 
+output "private_only_cidrs" {
+  description = "CIDRs of the created private_only subnets."
+  value       = { for k, subnet in aws_subnet.private : k => subnet.cidr_block if subnet.subnet_type == "private_only" }
+}
+
 output "private_tgw_attachment_subnet_ids" {
   description = "IDs of the created private_tgw_attachment subnets."
   value       = { for k, subnet in aws_subnet.private : k => subnet.id if subnet.subnet_type == "private_tgw_attachment" }
+}
+
+output "private_tgw_attachment_cidrs" {
+  description = "CIDRs of the created private_tgw_attachment subnets."
+  value       = { for k, subnet in aws_subnet.private : k => subnet.cidr_block if subnet.subnet_type == "private_tgw_attachment" }
 }
 
 output "internet_gateway_id" {
