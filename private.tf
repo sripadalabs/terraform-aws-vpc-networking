@@ -1,5 +1,7 @@
 locals {
   private_subnet_map = { for subnet in var.private_subnets : subnet.key => subnet }  
+  private_subnet_map_egress_nat = { for subnet in var.private_subnets : subnet.key => subnet 
+        if subnet.subnet_type == "private_with_internet" && var.internet_ingress == true }  
 }
 
 resource "aws_subnet" "private" {
@@ -31,7 +33,7 @@ resource "aws_route_table" "private" {
 }
 
 resource "aws_route" "public_nat" {
-  for_each = local.private_subnet_map
+  for_each = local.private_subnet_map_egress_nat
 
   route_table_id         = aws_route_table.private[each.key].id
   destination_cidr_block = "0.0.0.0/0"
