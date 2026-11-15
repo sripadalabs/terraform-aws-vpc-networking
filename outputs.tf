@@ -13,6 +13,24 @@ output "private_with_internet_cidrs" {
   value       = { for k, subnet in aws_subnet.private : k => subnet.cidr_block if subnet.subnet_type == "private_with_internet" }
 }
 
+output "private_with_internet_route_table_id" {
+  description = "Route table ID of the created private_with_internet subnets."
+  value = {
+    for subnet in var.private_subnets :
+    subnet.key => aws_route_table.private[subnet.key].id
+    if subnet.subnet_type == "private_with_internet"
+  }
+}
+
+output "private_only_route_table_id" {
+  description = "Route table ID of the created private_only subnets."
+  value = {
+    for subnet in var.private_subnets :
+    subnet.key => aws_route_table.private[subnet.key].id
+    if subnet.subnet_type == "private_only"
+  }
+}
+
 output "private_only_subnet_ids" {
   description = "IDs of the created private_only subnets."
   value       = { for k, subnet in aws_subnet.private : k => subnet.id if subnet.subnet_type == "private_only" }
